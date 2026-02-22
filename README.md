@@ -15,6 +15,29 @@ All built by a 3-person team running Claude Code, Gemini CLI, and Codex CLI in t
 
 ---
 
+## Quick Start
+
+```bash
+git clone https://github.com/sallylab-official/ai-workflow-tools
+cd ai-workflow-tools
+
+# Skills
+cp -r skills/megaplan ~/.claude/skills/
+cp -r skills/planify ~/.claude/skills/
+
+# Commands
+cp commands/handoff-create.md ~/.claude/commands/
+cp commands/handoff-quick.md ~/.claude/commands/
+cp commands/handoff-resume.md ~/.claude/commands/
+
+# Completion Sound
+mkdir -p ~/.claude/sounds
+cp sounds/reze-boom.wav ~/.claude/sounds/
+# Then add the Stop hook to ~/.claude/settings.json — see sounds/README.md
+```
+
+---
+
 ## Tools
 
 | Tool                                  | Type     | What It Does                                            |

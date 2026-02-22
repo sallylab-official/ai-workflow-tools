@@ -39,19 +39,27 @@ If you already have other hooks configured, add the `Stop` block alongside them.
 
 Replace `afplay ...` in the hook with the command for your platform:
 
-| Platform           | Command                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| macOS              | `afplay --volume 1.0 ~/.claude/sounds/reze-boom.wav`                                                               |
-| Linux (PulseAudio) | `paplay ~/.claude/sounds/reze-boom.wav`                                                                            |
-| Linux (PipeWire)   | `pw-play ~/.claude/sounds/reze-boom.wav`                                                                           |
-| Linux (ALSA)       | `aplay ~/.claude/sounds/reze-boom.wav`                                                                             |
-| Windows (WSL)      | `powershell.exe -c "(New-Object Media.SoundPlayer '$env:USERPROFILE\\.claude\\sounds\\reze-boom.wav').PlaySync()"` |
+| Platform           | Command                                              |
+| ------------------ | ---------------------------------------------------- |
+| macOS              | `afplay --volume 1.0 ~/.claude/sounds/reze-boom.wav` |
+| Linux (PulseAudio) | `paplay ~/.claude/sounds/reze-boom.wav`              |
+| Linux (PipeWire)   | `pw-play ~/.claude/sounds/reze-boom.wav`             |
+| Linux (ALSA)       | `aplay ~/.claude/sounds/reze-boom.wav`               |
+| Windows (WSL)      | see below                                            |
 
-**Full hook command for Linux (PulseAudio):**
+**Full hook command for Linux (PulseAudio with ALSA fallback):**
 
 ```bash
-[ -f ~/.claude/sounds/reze-boom.wav ] && paplay ~/.claude/sounds/reze-boom.wav 2>/dev/null &
+[ -f ~/.claude/sounds/reze-boom.wav ] && (paplay ~/.claude/sounds/reze-boom.wav 2>/dev/null || aplay ~/.claude/sounds/reze-boom.wav 2>/dev/null) &
 ```
+
+**Full hook command for Windows (WSL)** — requires path conversion:
+
+```bash
+[ -f ~/.claude/sounds/reze-boom.wav ] && powershell.exe -c "(New-Object Media.SoundPlayer '$(wslpath -w ~/.claude/sounds/reze-boom.wav)').PlaySync()" 2>/dev/null &
+```
+
+> `wslpath -w` converts the Linux path to a Windows path that `powershell.exe` can read.
 
 The `[ -f ... ] &&` guard ensures the hook silently does nothing if the file doesn't exist. The trailing `&` runs playback in the background so Claude Code isn't blocked.
 
