@@ -20,8 +20,10 @@ All built by a 3-person team running Claude Code, Gemini CLI, and Codex CLI in t
 | Tool                                  | Type     | What It Does                                            |
 | ------------------------------------- | -------- | ------------------------------------------------------- |
 | [Megaplan](#megaplan)                 | Skill    | Tri-provider consensus planning (Claude + GPT + Gemini) |
+| [Planify](#planify)                   | Skill    | Requirements → verified plan with Opus approval loop    |
 | [Handoff Commands](#handoff-commands) | Commands | AI-to-AI session continuity protocol                    |
 | [Lincoln Router](#lincoln-router)     | Hook     | Prompt quality gate and workflow router                 |
+| [Completion Sound](#completion-sound) | Hook     | Audio feedback when Claude finishes a task              |
 
 ---
 
@@ -57,6 +59,39 @@ Phase 5: Final Output
 **Why it matters**: Each provider has different blind spots. Claude excels at deep architecture analysis, GPT gives stronger technical feedback on code-heavy plans, and Gemini catches structural issues. In our experience, the tri-provider approach caught 2-3 critical issues per plan that Claude-only consensus missed.
 
 **Requirements**: Claude Code, [Codex CLI](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+
+---
+
+## Planify
+
+**Type**: Claude Code Skill (`~/.claude/skills/planify/`)
+
+**What it does**: Takes a requirement in plain language and drives Claude through a structured 5-phase process: codebase exploration → plan writing → multi-AI review → Opus approval loop → final report. Every plan produced includes a test checklist.
+
+**Why we built it**: Writing plans ad-hoc leads to inconsistent quality. Some plans have test coverage, some don't. Some get reviewed, some go straight to implementation. Planify enforces the full process every time, so every feature starts from a verified, reviewed plan.
+
+```
+Phase 1: Explore (Explore subagent)
+  → Map relevant files, patterns, and architecture
+
+Phase 2: Write plan
+  → docs/plans/YYYY-MM-DD-{feature}.md with test plan section
+
+Phase 3: Multi-AI review (parallel)       ← catches blind spots
+  Claude Opus ---+
+                 +--- review → synthesize → update plan
+  Codex (GPT) --+
+
+Phase 4: Opus approval loop               ← repeats until clean
+  Review → revise → re-review (max 5 iterations)
+
+Phase 5: Report
+  → File path, round count, key decisions
+```
+
+**The key insight**: Opus reviewing its own plans finds issues that in-context Claude misses. The approval loop (not one-shot review) is what makes the difference -- it forces the plan to be actually fixed, not just flagged.
+
+**Requirements**: Claude Code. [Codex CLI](https://github.com/openai/codex) optional (Phase 3 skipped if not installed).
 
 ---
 
@@ -123,12 +158,6 @@ The clarity scorer uses keyword matching for domain classification (coding vs. n
 
 ## Installation
 
-### Skills
-
-```bash
-cp -r skills/megaplan ~/.claude/skills/
-```
-
 ### Commands
 
 ```bash
@@ -137,9 +166,55 @@ cp commands/handoff-quick.md ~/.claude/commands/
 cp commands/handoff-resume.md ~/.claude/commands/
 ```
 
+### Skills
+
+```bash
+cp -r skills/megaplan ~/.claude/skills/
+cp -r skills/planify ~/.claude/skills/
+```
+
+### Completion Sound
+
+```bash
+mkdir -p ~/.claude/sounds
+cp sounds/reze-boom.wav ~/.claude/sounds/
+```
+
+Then add the Stop hook to `~/.claude/settings.json` — see [`sounds/README.md`](sounds/README.md) for the full config and platform-specific commands.
+
 ### Lincoln Router
 
 See [`lincoln-router/README.md`](lincoln-router/README.md) for architecture details. The implementation requires customization for your team's language and workflow patterns.
+
+---
+
+## Completion Sound
+
+**Type**: Claude Code `Stop` Hook
+
+Plays a sound the moment Claude Code finishes a task. Simple, but surprisingly effective for long-running work -- you can leave your desk and know exactly when to come back.
+
+**How it works**: Claude Code fires a `Stop` event at the end of every response. The hook runs a one-liner that plays a WAV file in the background.
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f ~/.claude/sounds/reze-boom.wav ] && afplay --volume 1.0 ~/.claude/sounds/reze-boom.wav 2>/dev/null &"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Install**: Copy `sounds/reze-boom.wav` to `~/.claude/sounds/`, add the hook. Two steps. See [`sounds/README.md`](sounds/README.md) for Linux and Windows (WSL) commands.
 
 ---
 
